@@ -20,6 +20,7 @@ export function ScheduleBooking({ packages, photographers }) {
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [dimmedWarning, setDimmedWarning] = useState("");
 
   const allTags = useMemo(() => {
     const tagSet = new Set();
@@ -63,18 +64,19 @@ export function ScheduleBooking({ packages, photographers }) {
     [form.photographerId, photographers],
   );
 
-  const matchedCount = useMemo(() => {
-    if (selectedTags.length === 0) return photographers.length;
+  const matchStats = useMemo(() => {
+    if (selectedTags.length === 0) {
+      return { fullyMatched: photographers.length, selectedUnmatched: 0 };
+    }
     const fullyMatched = photographers.filter((item) =>
       selectedTags.every((tag) => item.tags.includes(tag)),
     ).length;
-    if (form.photographerId) {
-      const selectedIsMatched = selectedTags.every((tag) =>
-        activePhotographer?.tags.includes(tag),
-      );
-      return selectedIsMatched ? fullyMatched : fullyMatched + 1;
-    }
-    return fullyMatched;
+    const selectedUnmatched =
+      form.photographerId &&
+      !selectedTags.every((tag) => activePhotographer?.tags.includes(tag))
+        ? 1
+        : 0;
+    return { fullyMatched, selectedUnmatched };
   }, [photographers, selectedTags, form.photographerId, activePhotographer]);
 
   function getMissingTags(item) {
@@ -86,10 +88,22 @@ export function ScheduleBooking({ packages, photographers }) {
     setSelectedTags((current) =>
       current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
     );
+    setDimmedWarning("");
   }
 
   function clearTags() {
     setSelectedTags([]);
+    setDimmedWarning("");
+  }
+
+  function handlePhotographerClick(item) {
+    if (!item.isMatched && form.photographerId !== item.id) {
+      const missing = getMissingTags(item).join("、");
+      setDimmedWarning(`${item.name} 缺少风格：${missing}，请先调整筛选条件。`);
+      return;
+    }
+    setDimmedWarning("");
+    updateField("photographerId", item.id);
   }
 
   useEffect(() => {
@@ -138,15 +152,30 @@ export function ScheduleBooking({ packages, photographers }) {
             <div className="tag-filter-header">
               <span className="tag-filter-title">
                 风格筛选
-                <span className="tag-filter-count">
-                  {selectedTags.length > 0 ? `匹配 ${matchedCount} 位` : `共 ${photographers.length} 位`}
-                </span>
               </span>
               {selectedTags.length > 0 && (
                 <button className="tag-clear" onClick={clearTags} type="button">
                   <X size={14} />
                   清除
                 </button>
+              )}
+            </div>
+            <div className="tag-filter-stats">
+              {selectedTags.length === 0 ? (
+                <span className="tag-filter-stat">共 {photographers.length} 位摄影师</span>
+              ) : (
+                <>
+                  <span className="tag-filter-stat">
+                    <span className="stat-dot matched" />
+                    完全匹配 {matchStats.fullyMatched} 位
+                  </span>
+                  {matchStats.selectedUnmatched > 0 && (
+                    <span className="tag-filter-stat">
+                      <span className="stat-dot selected" />
+                      已选但不匹配 {matchStats.selectedUnmatched} 位
+                    </span>
+                  )}
+                </>
               )}
             </div>
             <div className="tag-list">
@@ -171,7 +200,7 @@ export function ScheduleBooking({ packages, photographers }) {
                 <button
                   className={`photographer-card ${isSelected ? "active" : ""} ${isDimmed ? "dimmed" : ""}`}
                   key={item.id}
-                  onClick={() => updateField("photographerId", item.id)}
+                  onClick={() => handlePhotographerClick(item)}
                   type="button"
                 >
                   <img src={item.avatar} alt={item.name} />
@@ -200,6 +229,9 @@ export function ScheduleBooking({ packages, photographers }) {
                 </button>
               );
             })}
+            {dimmedWarning && (
+              <div className="notice notice-warning">{dimmedWarning}</div>
+            )}
           </div>
         </div>
 
