@@ -369,6 +369,16 @@ a {
   top: 0;
 }
 
+.photographer-card.dimmed {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.photographer-card.dimmed:hover {
+  opacity: 0.7;
+  filter: grayscale(0.3);
+}
+
 .photographer-card img {
   aspect-ratio: 1;
   border-radius: 8px;

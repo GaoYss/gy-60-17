@@ -28,15 +28,34 @@ export function ScheduleBooking({ packages, photographers }) {
   }, [photographers]);
 
   const filteredPhotographers = useMemo(() => {
-    const selected = photographers.find((item) => item.id === form.photographerId);
-    const others = photographers.filter((item) => item.id !== form.photographerId);
+    if (selectedTags.length === 0) {
+      if (!form.photographerId) return photographers.map((item) => ({ ...item, isMatched: true }));
+      const selected = photographers.find((item) => item.id === form.photographerId);
+      const others = photographers.filter((item) => item.id !== form.photographerId);
+      return [selected, ...others].map((item) => ({ ...item, isMatched: true }));
+    }
 
-    const matched =
-      selectedTags.length === 0
-        ? others
-        : others.filter((item) => selectedTags.every((tag) => item.tags.includes(tag)));
+    const matched = [];
+    const unmatched = [];
+    photographers.forEach((item) => {
+      const isMatched = selectedTags.every((tag) => item.tags.includes(tag));
+      if (isMatched) {
+        matched.push({ ...item, isMatched: true });
+      } else {
+        unmatched.push({ ...item, isMatched: false });
+      }
+    });
 
-    return selected ? [selected, ...matched] : matched;
+    const selectedId = form.photographerId;
+    if (selectedId) {
+      const selectedItem = matched.find((item) => item.id === selectedId) ||
+        unmatched.find((item) => item.id === selectedId);
+      const restMatched = matched.filter((item) => item.id !== selectedId);
+      const restUnmatched = unmatched.filter((item) => item.id !== selectedId);
+      return [selectedItem, ...restMatched, ...restUnmatched];
+    }
+
+    return [...matched, ...unmatched];
   }, [photographers, selectedTags, form.photographerId]);
 
   const activePhotographer = useMemo(
@@ -46,10 +65,17 @@ export function ScheduleBooking({ packages, photographers }) {
 
   const matchedCount = useMemo(() => {
     if (selectedTags.length === 0) return photographers.length;
-    return photographers.filter((item) =>
+    const fullyMatched = photographers.filter((item) =>
       selectedTags.every((tag) => item.tags.includes(tag)),
     ).length;
-  }, [photographers, selectedTags]);
+    if (form.photographerId) {
+      const selectedIsMatched = selectedTags.every((tag) =>
+        activePhotographer?.tags.includes(tag),
+      );
+      return selectedIsMatched ? fullyMatched : fullyMatched + 1;
+    }
+    return fullyMatched;
+  }, [photographers, selectedTags, form.photographerId, activePhotographer]);
 
   function getMissingTags(item) {
     if (selectedTags.length === 0) return [];
@@ -139,10 +165,11 @@ export function ScheduleBooking({ packages, photographers }) {
           <div className="photographer-list">
             {filteredPhotographers.map((item) => {
               const isSelected = form.photographerId === item.id;
-              const missingTags = isSelected ? getMissingTags(item) : [];
+              const missingTags = getMissingTags(item);
+              const isDimmed = !item.isMatched && !isSelected;
               return (
                 <button
-                  className={`photographer-card ${isSelected ? "active" : ""}`}
+                  className={`photographer-card ${isSelected ? "active" : ""} ${isDimmed ? "dimmed" : ""}`}
                   key={item.id}
                   onClick={() => updateField("photographerId", item.id)}
                   type="button"
@@ -173,9 +200,6 @@ export function ScheduleBooking({ packages, photographers }) {
                 </button>
               );
             })}
-            {filteredPhotographers.length === 0 && (
-              <div className="empty-state">没有符合筛选条件的摄影师</div>
-            )}
           </div>
         </div>
 
