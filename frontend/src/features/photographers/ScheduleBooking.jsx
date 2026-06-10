@@ -1,4 +1,4 @@
-import { CalendarDays, Send } from "lucide-react";
+import { CalendarDays, Send, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { createBooking, getAvailability } from "../../api/client";
@@ -19,11 +19,35 @@ export function ScheduleBooking({ packages, photographers }) {
   const [slots, setSlots] = useState([]);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set();
+    photographers.forEach((item) => item.tags.forEach((tag) => tagSet.add(tag)));
+    return Array.from(tagSet);
+  }, [photographers]);
+
+  const filteredPhotographers = useMemo(() => {
+    if (selectedTags.length === 0) return photographers;
+    return photographers.filter((item) =>
+      selectedTags.some((tag) => item.tags.includes(tag)),
+    );
+  }, [photographers, selectedTags]);
 
   const activePhotographer = useMemo(
     () => photographers.find((item) => item.id === form.photographerId),
     [form.photographerId, photographers],
   );
+
+  function toggleTag(tag) {
+    setSelectedTags((current) =>
+      current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
+    );
+  }
+
+  function clearTags() {
+    setSelectedTags([]);
+  }
 
   useEffect(() => {
     if (!form.photographerId || !form.date) {
@@ -66,22 +90,57 @@ export function ScheduleBooking({ packages, photographers }) {
       />
 
       <div className="booking-layout">
-        <div className="photographer-list">
-          {photographers.map((item) => (
-            <button
-              className={`photographer-card ${form.photographerId === item.id ? "active" : ""}`}
-              key={item.id}
-              onClick={() => updateField("photographerId", item.id)}
-              type="button"
-            >
-              <img src={item.avatar} alt={item.name} />
-              <span>
-                <strong>{item.name}</strong>
-                <small>{item.title}</small>
-              </span>
-              <em>{item.availableDates.length} 天可约</em>
-            </button>
-          ))}
+        <div className="photographer-column">
+          <div className="tag-filter">
+            <div className="tag-filter-header">
+              <span className="tag-filter-title">风格筛选</span>
+              {selectedTags.length > 0 && (
+                <button className="tag-clear" onClick={clearTags} type="button">
+                  <X size={14} />
+                  清除
+                </button>
+              )}
+            </div>
+            <div className="tag-list">
+              {allTags.map((tag) => (
+                <button
+                  className={`tag-chip ${selectedTags.includes(tag) ? "active" : ""}`}
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  type="button"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="photographer-list">
+            {filteredPhotographers.map((item) => (
+              <button
+                className={`photographer-card ${form.photographerId === item.id ? "active" : ""}`}
+                key={item.id}
+                onClick={() => updateField("photographerId", item.id)}
+                type="button"
+              >
+                <img src={item.avatar} alt={item.name} />
+                <span>
+                  <strong>{item.name}</strong>
+                  <small>{item.title}</small>
+                  <div className="photographer-tags">
+                    {item.tags.map((tag) => (
+                      <span className="photographer-tag" key={tag}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </span>
+                <em>{item.availableDates.length} 天可约</em>
+              </button>
+            ))}
+            {filteredPhotographers.length === 0 && (
+              <div className="empty-state">没有符合筛选条件的摄影师</div>
+            )}
+          </div>
         </div>
 
         <form className="booking-form" onSubmit={handleSubmit}>
