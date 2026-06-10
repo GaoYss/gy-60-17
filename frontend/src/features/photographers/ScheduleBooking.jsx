@@ -28,11 +28,16 @@ export function ScheduleBooking({ packages, photographers }) {
   }, [photographers]);
 
   const filteredPhotographers = useMemo(() => {
-    if (selectedTags.length === 0) return photographers;
-    return photographers.filter((item) =>
-      selectedTags.some((tag) => item.tags.includes(tag)),
-    );
-  }, [photographers, selectedTags]);
+    const selected = photographers.find((item) => item.id === form.photographerId);
+    const others = photographers.filter((item) => item.id !== form.photographerId);
+
+    const matched =
+      selectedTags.length === 0
+        ? others
+        : others.filter((item) => selectedTags.every((tag) => item.tags.includes(tag)));
+
+    return selected ? [selected, ...matched] : matched;
+  }, [photographers, selectedTags, form.photographerId]);
 
   const activePhotographer = useMemo(
     () => photographers.find((item) => item.id === form.photographerId),
@@ -140,6 +145,12 @@ export function ScheduleBooking({ packages, photographers }) {
             {filteredPhotographers.length === 0 && (
               <div className="empty-state">没有符合筛选条件的摄影师</div>
             )}
+            {form.photographerId &&
+              filteredPhotographers.length > 0 &&
+              selectedTags.length > 0 &&
+              !selectedTags.every((tag) => activePhotographer?.tags.includes(tag)) && (
+                <div className="notice">已选摄影师可能不完全匹配当前风格筛选</div>
+              )}
           </div>
         </div>
 
