@@ -267,9 +267,21 @@ a {
 }
 
 .tag-filter-title {
+  align-items: center;
   color: #4f463a;
+  display: inline-flex;
   font-size: 14px;
   font-weight: 900;
+  gap: 10px;
+}
+
+.tag-filter-count {
+  background: #f5f1ea;
+  border-radius: 999px;
+  color: #706659;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
 }
 
 .tag-clear {
@@ -391,6 +403,28 @@ a {
   font-weight: 600;
   margin: 0 !important;
   padding: 2px 6px;
+}
+
+.photographer-missing {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.missing-label {
+  color: #a64f35;
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  margin: 0 !important;
+}
+
+.photographer-tag.missing {
+  background: #ffe8e1;
+  border: 1px dashed #c97a62;
+  color: #a64f35;
 }
 
 .booking-form,

@@ -44,6 +44,18 @@ export function ScheduleBooking({ packages, photographers }) {
     [form.photographerId, photographers],
   );
 
+  const matchedCount = useMemo(() => {
+    if (selectedTags.length === 0) return photographers.length;
+    return photographers.filter((item) =>
+      selectedTags.every((tag) => item.tags.includes(tag)),
+    ).length;
+  }, [photographers, selectedTags]);
+
+  function getMissingTags(item) {
+    if (selectedTags.length === 0) return [];
+    return selectedTags.filter((tag) => !item.tags.includes(tag));
+  }
+
   function toggleTag(tag) {
     setSelectedTags((current) =>
       current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
@@ -98,7 +110,12 @@ export function ScheduleBooking({ packages, photographers }) {
         <div className="photographer-column">
           <div className="tag-filter">
             <div className="tag-filter-header">
-              <span className="tag-filter-title">风格筛选</span>
+              <span className="tag-filter-title">
+                风格筛选
+                <span className="tag-filter-count">
+                  {selectedTags.length > 0 ? `匹配 ${matchedCount} 位` : `共 ${photographers.length} 位`}
+                </span>
+              </span>
               {selectedTags.length > 0 && (
                 <button className="tag-clear" onClick={clearTags} type="button">
                   <X size={14} />
@@ -120,37 +137,45 @@ export function ScheduleBooking({ packages, photographers }) {
             </div>
           </div>
           <div className="photographer-list">
-            {filteredPhotographers.map((item) => (
-              <button
-                className={`photographer-card ${form.photographerId === item.id ? "active" : ""}`}
-                key={item.id}
-                onClick={() => updateField("photographerId", item.id)}
-                type="button"
-              >
-                <img src={item.avatar} alt={item.name} />
-                <span>
-                  <strong>{item.name}</strong>
-                  <small>{item.title}</small>
-                  <div className="photographer-tags">
-                    {item.tags.map((tag) => (
-                      <span className="photographer-tag" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </span>
-                <em>{item.availableDates.length} 天可约</em>
-              </button>
-            ))}
+            {filteredPhotographers.map((item) => {
+              const isSelected = form.photographerId === item.id;
+              const missingTags = isSelected ? getMissingTags(item) : [];
+              return (
+                <button
+                  className={`photographer-card ${isSelected ? "active" : ""}`}
+                  key={item.id}
+                  onClick={() => updateField("photographerId", item.id)}
+                  type="button"
+                >
+                  <img src={item.avatar} alt={item.name} />
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>{item.title}</small>
+                    <div className="photographer-tags">
+                      {item.tags.map((tag) => (
+                        <span className="photographer-tag" key={tag}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    {missingTags.length > 0 && (
+                      <div className="photographer-missing">
+                        <span className="missing-label">缺少：</span>
+                        {missingTags.map((tag) => (
+                          <span className="photographer-tag missing" key={tag}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </span>
+                  <em>{item.availableDates.length} 天可约</em>
+                </button>
+              );
+            })}
             {filteredPhotographers.length === 0 && (
               <div className="empty-state">没有符合筛选条件的摄影师</div>
             )}
-            {form.photographerId &&
-              filteredPhotographers.length > 0 &&
-              selectedTags.length > 0 &&
-              !selectedTags.every((tag) => activePhotographer?.tags.includes(tag)) && (
-                <div className="notice">已选摄影师可能不完全匹配当前风格筛选</div>
-              )}
           </div>
         </div>
 
